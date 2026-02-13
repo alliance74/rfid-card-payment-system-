@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blink RFID Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+            <path d="M16 8L22 16L16 24L10 16L16 8Z" fill="white"/>
+            <defs>
+              <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
+                <stop offset="0%" stop-color="#3b82f6"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div>
+            <h1>Blink RFID</h1>
+            <p class="subtitle">Smart Card Management</p>
+          </div>
+        </div>
+        <div class="connection-status">
+          <div id="connection-indicator" class="status-dot"></div>
+          <span id="connection-text">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard">
+      <!-- Card Display Section -->
+      <section class="card-section">
+        <div class="section-header">
+          <h2>Active Card</h2>
+          <div class="scan-indicator" id="scan-indicator">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2"/>
+              <path d="M10 6V10L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>Ready to scan</span>
+          </div>
+        </div>
+        
+        <div class="card-display">
+          <div id="card-visual" class="virtual-card">
+            <div class="card-bg-pattern"></div>
+            <div class="card-content">
+              <div class="card-header">
+                <div class="card-chip">
+                  <div class="chip-line"></div>
+                  <div class="chip-line"></div>
+                  <div class="chip-line"></div>
+                </div>
+                <svg class="contactless-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="card-number" id="card-number-display">•••• •••• •••• ••••</div>
+              <div class="card-footer">
+                <div class="card-info">
+                  <span class="card-label">CARD ID</span>
+                  <span class="card-value" id="card-uid-display">NO CARD</span>
+                </div>
+                <div class="card-info">
+                  <span class="card-label">BALANCE</span>
+                  <span class="card-value balance" id="card-balance-display">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">💳</div>
+            <div class="stat-content">
+              <span class="stat-label">Card Status</span>
+              <span class="stat-value" id="card-status">Inactive</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+              <span class="stat-label">Last Activity</span>
+              <span class="stat-value" id="last-activity">Never</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Top-up Section -->
+      <section class="topup-section">
+        <div class="section-header">
+          <h2>Add Funds</h2>
+        </div>
+
+        <div class="topup-card">
+          <div class="input-wrapper">
+            <label for="uid" class="input-label">Card UID</label>
+            <div class="input-container">
+              <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="3" y="5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M3 8H17" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <input type="text" id="uid" placeholder="Scan a card first" readonly>
+            </div>
+          </div>
+
+          <div class="input-wrapper">
+            <label for="amount" class="input-label">Custom Amount</label>
+            <div class="input-container">
+              <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M10 6V10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <input type="number" id="amount" placeholder="Enter amount" step="0.01" min="0">
+              <span class="input-suffix">USD</span>
+            </div>
+          </div>
+
+          <button id="topup-btn" class="topup-btn" disabled>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>Add Funds</span>
+          </button>
+
+          <div class="topup-info">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 11V8M8 5H8.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Funds will be added instantly to your card</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Activity Log -->
+    <section class="activity-section">
+      <div class="section-header">
+        <h2>Activity Log</h2>
+        <button class="clear-log-btn" id="clear-log-btn">Clear</button>
+      </div>
+      <div class="activity-log">
+        <ul id="log-list" class="log-list">
+          <li class="log-empty">No activity yet. Scan a card to get started.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <span>Team <strong id="team-id-display">blink_01</strong></span>
+        <span class="separator">•</span>
+        <span>IoT RFID System</span>
+        <span class="separator">•</span>
+        <span id="current-time"></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
